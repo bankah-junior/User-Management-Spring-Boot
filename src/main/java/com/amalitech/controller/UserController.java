@@ -3,6 +3,14 @@ package com.amalitech.controller;
 import com.amalitech.exception.UserNotFoundException;
 import com.amalitech.model.User;
 import com.amalitech.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@Tag(name = "User Management", description = "APIs for managing user resources")
 public class UserController {
     
     private final UserService userService;
@@ -21,33 +30,209 @@ public class UserController {
     }
     
     @PostMapping
-    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+    @Operation(
+        summary = "Create a new user",
+        description = "Creates a new user with the provided information. Email must be unique."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "User created successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = User.class),
+                examples = @ExampleObject(
+                    value = "{\"id\":\"507f1f77bcf86cd799439011\",\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"age\":30}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input - validation failed",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":400,\"error\":\"Bad Request\",\"message\":\"Validation failed\",\"fieldErrors\":{\"email\":\"Email must be a valid email address\"}}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Email already exists",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":409,\"error\":\"Conflict\",\"message\":\"Email already exists: john.doe@example.com\"}"
+                )
+            )
+        )
+    })
+    public ResponseEntity<User> createUser(
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "User object to be created",
+            required = true,
+            content = @Content(
+                schema = @Schema(implementation = User.class),
+                examples = @ExampleObject(
+                    value = "{\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"age\":30}"
+                )
+            )
+        )
+        @Valid @RequestBody User user) {
         User createdUser = userService.createUser(user);
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
     
     @GetMapping
+    @Operation(
+        summary = "Get all users",
+        description = "Retrieves a list of all users in the system"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Successfully retrieved all users",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = User.class),
+                examples = @ExampleObject(
+                    value = "[{\"id\":\"507f1f77bcf86cd799439011\",\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"age\":30},{\"id\":\"507f1f77bcf86cd799439012\",\"name\":\"Jane Smith\",\"email\":\"jane.smith@example.com\",\"age\":25}]"
+                )
+            )
+        )
+    })
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable String id) {
+    @Operation(
+        summary = "Get user by ID",
+        description = "Retrieves a specific user by their unique identifier"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "User found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = User.class),
+                examples = @ExampleObject(
+                    value = "{\"id\":\"507f1f77bcf86cd799439011\",\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"age\":30}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "User not found",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":404,\"error\":\"Not Found\",\"message\":\"User not found with id: 507f1f77bcf86cd799439011\"}"
+                )
+            )
+        )
+    })
+    public ResponseEntity<User> getUserById(
+        @Parameter(description = "Unique identifier of the user", example = "507f1f77bcf86cd799439011")
+        @PathVariable String id) {
         return userService.getUserById(id)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new UserNotFoundException(id));
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable String id, @Valid @RequestBody User user) {
+    @Operation(
+        summary = "Update an existing user",
+        description = "Updates all fields of an existing user. Email must remain unique."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "User updated successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = User.class),
+                examples = @ExampleObject(
+                    value = "{\"id\":\"507f1f77bcf86cd799439011\",\"name\":\"John Updated\",\"email\":\"john.updated@example.com\",\"age\":35}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input - validation failed",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":400,\"error\":\"Bad Request\",\"message\":\"Validation failed\",\"fieldErrors\":{\"age\":\"Age must be at least 18\"}}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "User not found",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":404,\"error\":\"Not Found\",\"message\":\"User not found with id: 507f1f77bcf86cd799439011\"}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Email already exists",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":409,\"error\":\"Conflict\",\"message\":\"Email already exists: existing@example.com\"}"
+                )
+            )
+        )
+    })
+    public ResponseEntity<User> updateUser(
+        @Parameter(description = "Unique identifier of the user to update", example = "507f1f77bcf86cd799439011")
+        @PathVariable String id,
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Updated user object",
+            required = true,
+            content = @Content(
+                schema = @Schema(implementation = User.class),
+                examples = @ExampleObject(
+                    value = "{\"name\":\"John Updated\",\"email\":\"john.updated@example.com\",\"age\":35}"
+                )
+            )
+        )
+        @Valid @RequestBody User user) {
         return userService.updateUser(id, user)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new UserNotFoundException(id));
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+    @Operation(
+        summary = "Delete a user",
+        description = "Permanently deletes a user from the system"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "User deleted successfully"
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "User not found",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":404,\"error\":\"Not Found\",\"message\":\"User not found with id: 507f1f77bcf86cd799439011\"}"
+                )
+            )
+        )
+    })
+    public ResponseEntity<Void> deleteUser(
+        @Parameter(description = "Unique identifier of the user to delete", example = "507f1f77bcf86cd799439011")
+        @PathVariable String id) {
         boolean deleted = userService.deleteUser(id);
         if (deleted) {
             return ResponseEntity.noContent().build();
