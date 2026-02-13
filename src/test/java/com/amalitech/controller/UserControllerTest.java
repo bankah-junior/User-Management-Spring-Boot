@@ -1,5 +1,6 @@
 package com.amalitech.controller;
 
+import com.amalitech.exception.GlobalExceptionHandler;
 import com.amalitech.model.User;
 import com.amalitech.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +39,9 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(userController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
         objectMapper = new ObjectMapper();
 
         // Initialize test user
@@ -301,6 +304,91 @@ class UserControllerTest {
 
         // Assert
         verify(userService, times(1)).getUserById(userId);
+    }
+
+    // US-006: Input Validation Tests
+    
+    @Test
+    @DisplayName("Should return 400 Bad Request when name is blank")
+    void testCreateUserValidationBlankName() throws Exception {
+        // Arrange
+        User invalidUser = new User("", "test@example.com", 25);
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidUser)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.error", is("Bad Request")))
+                .andExpect(jsonPath("$.message", is("Validation failed")))
+                .andExpect(jsonPath("$.fieldErrors.name").exists());
+        
+        verify(userService, never()).createUser(any(User.class));
+    }
+    
+    @Test
+    @DisplayName("Should return 400 Bad Request when email format is invalid")
+    void testCreateUserValidationInvalidEmail() throws Exception {
+        // Arrange
+        User invalidUser = new User("Test User", "invalid-email", 25);
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidUser)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.email", is("Email must be a valid email address")));
+        
+        verify(userService, never()).createUser(any(User.class));
+    }
+    
+    @Test
+    @DisplayName("Should return 400 Bad Request when age is below minimum")
+    void testCreateUserValidationAgeTooLow() throws Exception {
+        // Arrange
+        User invalidUser = new User("Test User", "test@example.com", 17);
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidUser)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.age", is("Age must be at least 18")));
+        
+        verify(userService, never()).createUser(any(User.class));
+    }
+    
+    @Test
+    @DisplayName("Should return 400 Bad Request when age exceeds maximum")
+    void testCreateUserValidationAgeTooHigh() throws Exception {
+        // Arrange
+        User invalidUser = new User("Test User", "test@example.com", 101);
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidUser)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.age", is("Age must not exceed 100")));
+        
+        verify(userService, never()).createUser(any(User.class));
+    }
+    
+    @Test
+    @DisplayName("Should not call service when validation fails")
+    void testCreateUserValidationDoesNotCallService() throws Exception {
+        // Arrange
+        User invalidUser = new User("", "invalid", 17);
+        
+        // Act
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidUser)))
+                .andExpect(status().isBadRequest());
+        
+        // Assert
+        verify(userService, never()).createUser(any(User.class));
     }
 
 }
