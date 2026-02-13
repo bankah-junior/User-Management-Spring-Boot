@@ -110,13 +110,69 @@ DELETE /api/v1/users/{id}
 - **Email**: Required, must be a valid email format, must be unique
 - **Age**: Required, must be between 18 and 100
 
+## Monitoring & Health Checks
+
+### Actuator Endpoints
+The application provides several monitoring endpoints:
+
+**Health Check:**
+```
+GET http://localhost:8080/actuator/health
+```
+Returns application health status including MongoDB connection
+
+**Application Info:**
+```
+GET http://localhost:8080/actuator/info
+```
+Returns application metadata and version information
+
+**Metrics:**
+```
+GET http://localhost:8080/actuator/metrics
+```
+Returns available application metrics
+
+**Loggers:**
+```
+GET http://localhost:8080/actuator/loggers
+```
+View and modify logging levels at runtime
+
+### Health Response Example
+```json
+{
+  "status": "UP",
+  "components": {
+    "mongo": {
+      "status": "UP",
+      "details": {
+        "database": "usermanagement",
+        "collections": 1,
+        "status": "Connected"
+      }
+    },
+    "ping": {
+      "status": "UP"
+    }
+  }
+}
+```
+
+### Logging
+- **SLF4J with Logback** - Structured logging
+- **Log Levels**: DEBUG for service/controller, INFO for general operations
+- **Request/Response Logging** - All API operations logged
+- **Error Tracking** - Stack traces for exceptions
+
 ## Technology Stack
 - **Java 21** - Latest LTS version
 - **Spring Boot 4.0.2** - Application framework
 - **Spring Data MongoDB** - Database integration
+- **Spring Boot Actuator** - Monitoring and health checks
 - **SpringDoc OpenAPI** - API documentation (Swagger UI)
 - **Spring Boot Validation** - Input validation
-- **Spring Boot Validation** - Input validation
+- **SLF4J & Logback** - Logging framework
 - **MongoDB** - NoSQL database
 - **Maven** - Build tool and dependency management
 - **JUnit 5** - Testing framework

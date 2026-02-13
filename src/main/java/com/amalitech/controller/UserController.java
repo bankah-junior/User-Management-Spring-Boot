@@ -12,6 +12,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,8 @@ import java.util.List;
 @RequestMapping("/api/v1/users")
 @Tag(name = "User Management", description = "APIs for managing user resources")
 public class UserController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     
     private final UserService userService;
     
@@ -79,7 +83,9 @@ public class UserController {
             )
         )
         @Valid @RequestBody User user) {
+        logger.info("Received POST request to create user with email: {}", user.getEmail());
         User createdUser = userService.createUser(user);
+        logger.info("Successfully created user with ID: {}", createdUser.getId());
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
     
@@ -102,7 +108,9 @@ public class UserController {
         )
     })
     public ResponseEntity<List<User>> getAllUsers() {
+        logger.info("Received GET request to fetch all users");
         List<User> users = userService.getAllUsers();
+        logger.info("Returning {} users", users.size());
         return ResponseEntity.ok(users);
     }
     
@@ -137,9 +145,16 @@ public class UserController {
     public ResponseEntity<User> getUserById(
         @Parameter(description = "Unique identifier of the user", example = "507f1f77bcf86cd799439011")
         @PathVariable String id) {
+        logger.info("Received GET request for user ID: {}", id);
         return userService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .map(user -> {
+                    logger.info("Successfully found user ID: {}", id);
+                    return ResponseEntity.ok(user);
+                })
+                .orElseThrow(() -> {
+                    logger.warn("User not found with ID: {}", id);
+                    return new UserNotFoundException(id);
+                });
     }
     
     @PutMapping("/{id}")
@@ -204,9 +219,16 @@ public class UserController {
             )
         )
         @Valid @RequestBody User user) {
+        logger.info("Received PUT request to update user ID: {}", id);
         return userService.updateUser(id, user)
-                .map(ResponseEntity::ok)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .map(updatedUser -> {
+                    logger.info("Successfully updated user ID: {}", id);
+                    return ResponseEntity.ok(updatedUser);
+                })
+                .orElseThrow(() -> {
+                    logger.warn("User not found for update with ID: {}", id);
+                    return new UserNotFoundException(id);
+                });
     }
     
     @DeleteMapping("/{id}")
@@ -233,10 +255,13 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(
         @Parameter(description = "Unique identifier of the user to delete", example = "507f1f77bcf86cd799439011")
         @PathVariable String id) {
+        logger.info("Received DELETE request for user ID: {}", id);
         boolean deleted = userService.deleteUser(id);
         if (deleted) {
+            logger.info("Successfully deleted user ID: {}", id);
             return ResponseEntity.noContent().build();
         } else {
+            logger.warn("User not found for deletion with ID: {}", id);
             throw new UserNotFoundException(id);
         }
     }
