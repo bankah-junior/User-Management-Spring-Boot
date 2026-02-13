@@ -1,5 +1,6 @@
 package com.amalitech.controller;
 
+import com.amalitech.exception.DuplicateEmailException;
 import com.amalitech.exception.GlobalExceptionHandler;
 import com.amalitech.model.User;
 import com.amalitech.service.UserService;
@@ -550,6 +551,86 @@ class UserControllerTest {
         mockMvc.perform(delete("/api/v1/users/{id}", userId))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
+    }
+
+    // US-007: Unique Email Enforcement Tests
+
+    @Test
+    @DisplayName("Should return 409 Conflict when creating user with duplicate email")
+    void testCreateUserDuplicateEmail() throws Exception {
+        // Arrange
+        User userToCreate = new User("Jane Smith", "john.doe@example.com", 25);
+        String userJson = objectMapper.writeValueAsString(userToCreate);
+        
+        when(userService.createUser(any(User.class)))
+            .thenThrow(new DuplicateEmailException("john.doe@example.com"));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status", is(409)))
+                .andExpect(jsonPath("$.error", is("Conflict")))
+                .andExpect(jsonPath("$.message", containsString("Email already exists")));
+    }
+
+    @Test
+    @DisplayName("Should return 409 Conflict when updating user with duplicate email")
+    void testUpdateUserDuplicateEmail() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("John Updated", "existing@example.com", 35);
+        String userJson = objectMapper.writeValueAsString(updateData);
+        
+        when(userService.updateUser(eq(userId), any(User.class)))
+            .thenThrow(new DuplicateEmailException("existing@example.com"));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status", is(409)))
+                .andExpect(jsonPath("$.error", is("Conflict")))
+                .andExpect(jsonPath("$.message", containsString("Email already exists")));
+    }
+
+    @Test
+    @DisplayName("Should include email in error message for duplicate email on create")
+    void testCreateUserDuplicateEmailIncludesEmail() throws Exception {
+        // Arrange
+        User userToCreate = new User("Jane Smith", "duplicate@example.com", 25);
+        String userJson = objectMapper.writeValueAsString(userToCreate);
+        
+        when(userService.createUser(any(User.class)))
+            .thenThrow(new DuplicateEmailException("duplicate@example.com"));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message", is("Email already exists: duplicate@example.com")));
+    }
+
+    @Test
+    @DisplayName("Should include email in error message for duplicate email on update")
+    void testUpdateUserDuplicateEmailIncludesEmail() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("John Updated", "duplicate@example.com", 35);
+        String userJson = objectMapper.writeValueAsString(updateData);
+        
+        when(userService.updateUser(eq(userId), any(User.class)))
+            .thenThrow(new DuplicateEmailException("duplicate@example.com"));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message", is("Email already exists: duplicate@example.com")));
     }
 
 }

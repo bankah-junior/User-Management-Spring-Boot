@@ -1,5 +1,6 @@
 package com.amalitech.service;
 
+import com.amalitech.exception.DuplicateEmailException;
 import com.amalitech.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 
 import java.util.Arrays;
 import java.util.List;
@@ -421,6 +423,107 @@ class UserServiceImplTest {
 
         // Assert
         verify(mongoTemplate, times(1)).findById(userId, User.class);
+    }
+
+    // US-007: Unique Email Enforcement Tests
+
+    @Test
+    @DisplayName("Should throw DuplicateEmailException when creating user with existing email")
+    void testCreateUserWithDuplicateEmail() {
+        // Arrange
+        User userToCreate = new User("Jane Smith", "john.doe@example.com", 25);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(true);
+
+        // Act & Assert
+        DuplicateEmailException exception = assertThrows(
+            DuplicateEmailException.class,
+            () -> userService.createUser(userToCreate)
+        );
+        
+        assertEquals("Email already exists: john.doe@example.com", exception.getMessage());
+        verify(mongoTemplate, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should check email uniqueness before creating user")
+    void testCreateUserChecksEmailUniqueness() {
+        // Arrange
+        User userToCreate = new User("Jane Smith", "jane@example.com", 25);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class))).thenReturn(testUser);
+
+        // Act
+        userService.createUser(userToCreate);
+
+        // Assert
+        verify(mongoTemplate, times(1)).exists(any(Query.class), eq(User.class));
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw DuplicateEmailException when updating user with existing email")
+    void testUpdateUserWithDuplicateEmail() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("John Updated", "existing@example.com", 35);
+        
+        User existingUser = new User("John Doe", "john.doe@example.com", 30);
+        existingUser.setId(userId);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(existingUser);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(true);
+
+        // Act & Assert
+        DuplicateEmailException exception = assertThrows(
+            DuplicateEmailException.class,
+            () -> userService.updateUser(userId, updateData)
+        );
+        
+        assertEquals("Email already exists: existing@example.com", exception.getMessage());
+        verify(mongoTemplate, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should allow updating user with same email")
+    void testUpdateUserWithSameEmail() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("John Updated", "john.doe@example.com", 35);
+        
+        User existingUser = new User("John Doe", "john.doe@example.com", 30);
+        existingUser.setId(userId);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(existingUser);
+        when(mongoTemplate.save(any(User.class))).thenReturn(existingUser);
+
+        // Act
+        userService.updateUser(userId, updateData);
+
+        // Assert - Should not check email uniqueness when email hasn't changed
+        verify(mongoTemplate, never()).exists(any(Query.class), eq(User.class));
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should allow updating user with new unique email")
+    void testUpdateUserWithNewUniqueEmail() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("John Updated", "new.email@example.com", 35);
+        
+        User existingUser = new User("John Doe", "john.doe@example.com", 30);
+        existingUser.setId(userId);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(existingUser);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class))).thenReturn(existingUser);
+
+        // Act
+        userService.updateUser(userId, updateData);
+
+        // Assert
+        verify(mongoTemplate, times(1)).exists(any(Query.class), eq(User.class));
+        verify(mongoTemplate, times(1)).save(any(User.class));
     }
 
 }

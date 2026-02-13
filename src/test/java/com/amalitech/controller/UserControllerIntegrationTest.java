@@ -466,4 +466,129 @@ class UserControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/users/{id}", userId))
                 .andExpect(status().isNotFound());
     }
+
+    // US-007: Unique Email Enforcement Integration Tests
+
+    @Test
+    void testCreateUser_DuplicateEmail_IntegrationTest() throws Exception {
+        // Arrange - Create first user
+        User firstUser = new User("John Doe", "unique@example.com", 30);
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(firstUser)))
+                .andExpect(status().isCreated());
+
+        // Act & Assert - Try to create second user with same email
+        User secondUser = new User("Jane Smith", "unique@example.com", 25);
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(secondUser)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status", is(409)))
+                .andExpect(jsonPath("$.error", is("Conflict")))
+                .andExpect(jsonPath("$.message", is("Email already exists: unique@example.com")));
+    }
+
+    @Test
+    void testUpdateUser_DuplicateEmail_IntegrationTest() throws Exception {
+        // Arrange - Create two users
+        User user1 = new User("User One", "user1@example.com", 30);
+        String response1 = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user1)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        User createdUser1 = objectMapper.readValue(response1, User.class);
+
+        User user2 = new User("User Two", "user2@example.com", 25);
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user2)))
+                .andExpect(status().isCreated());
+
+        // Act & Assert - Try to update user1 with user2's email
+        User updateData = new User("Updated User", "user2@example.com", 35);
+        mockMvc.perform(put("/api/v1/users/{id}", createdUser1.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status", is(409)))
+                .andExpect(jsonPath("$.error", is("Conflict")))
+                .andExpect(jsonPath("$.message", is("Email already exists: user2@example.com")));
+    }
+
+    @Test
+    void testUpdateUser_SameEmail_IntegrationTest() throws Exception {
+        // Arrange - Create a user
+        User user = new User("John Doe", "john@example.com", 30);
+        String response = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        
+        User createdUser = objectMapper.readValue(response, User.class);
+        String userId = createdUser.getId();
+
+        // Act & Assert - Update user with same email (should succeed)
+        User updateData = new User("John Updated", "john@example.com", 35);
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("John Updated")))
+                .andExpect(jsonPath("$.email", is("john@example.com")))
+                .andExpect(jsonPath("$.age", is(35)));
+    }
+
+    @Test
+    void testUpdateUser_NewUniqueEmail_IntegrationTest() throws Exception {
+        // Arrange - Create a user
+        User user = new User("John Doe", "john@example.com", 30);
+        String response = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        
+        User createdUser = objectMapper.readValue(response, User.class);
+        String userId = createdUser.getId();
+
+        // Act & Assert - Update user with new unique email (should succeed)
+        User updateData = new User("John Updated", "john.new@example.com", 35);
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("John Updated")))
+                .andExpect(jsonPath("$.email", is("john.new@example.com")))
+                .andExpect(jsonPath("$.age", is(35)));
+    }
+
+    @Test
+    void testDuplicateEmailErrorMessage_IntegrationTest() throws Exception {
+        // Arrange - Create a user
+        User user = new User("John Doe", "test.duplicate@example.com", 30);
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isCreated());
+
+        // Act & Assert - Verify error message format
+        User duplicateUser = new User("Jane Smith", "test.duplicate@example.com", 25);
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(duplicateUser)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status", is(409)))
+                .andExpect(jsonPath("$.error", is("Conflict")))
+                .andExpect(jsonPath("$.message", is("Email already exists: test.duplicate@example.com")));
+    }
 }
