@@ -361,4 +361,66 @@ class UserServiceImplTest {
         verify(mongoTemplate, times(1)).save(any(User.class));
     }
 
+    // US-005: Delete User Tests
+    
+    @Test
+    @DisplayName("Should delete user successfully when user exists")
+    void testDeleteUserSuccess() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(testUser);
+
+        // Act
+        boolean result = userService.deleteUser(userId);
+
+        // Assert
+        assertTrue(result, "Delete should return true when user exists");
+        verify(mongoTemplate, times(1)).findById(userId, User.class);
+        verify(mongoTemplate, times(1)).remove(any(org.springframework.data.mongodb.core.query.Query.class), eq(User.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when deleting non-existent user")
+    void testDeleteUserNotFound() {
+        // Arrange
+        String userId = "nonexistent123";
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(null);
+
+        // Act
+        boolean result = userService.deleteUser(userId);
+
+        // Assert
+        assertFalse(result, "Delete should return false when user doesn't exist");
+        verify(mongoTemplate, times(1)).findById(userId, User.class);
+        verify(mongoTemplate, never()).remove(any(org.springframework.data.mongodb.core.query.Query.class), eq(User.class));
+    }
+
+    @Test
+    @DisplayName("Should call mongoTemplate.remove when deleting user")
+    void testDeleteUserCallsRemove() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(testUser);
+
+        // Act
+        userService.deleteUser(userId);
+
+        // Assert
+        verify(mongoTemplate, times(1)).remove(any(org.springframework.data.mongodb.core.query.Query.class), eq(User.class));
+    }
+
+    @Test
+    @DisplayName("Should check if user exists before deleting")
+    void testDeleteUserChecksExistence() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(testUser);
+
+        // Act
+        userService.deleteUser(userId);
+
+        // Assert
+        verify(mongoTemplate, times(1)).findById(userId, User.class);
+    }
+
 }

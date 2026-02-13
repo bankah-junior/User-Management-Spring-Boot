@@ -45,4 +45,14 @@ public class UserController {
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new UserNotFoundException(id));
     }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        boolean deleted = userService.deleteUser(id);
+        if (deleted) {
+            return ResponseEntity.noContent().build();
+        } else {
+            throw new UserNotFoundException(id);
+        }
+    }
 }

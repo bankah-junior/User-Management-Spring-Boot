@@ -10,4 +10,5 @@ public interface UserService {
     List<User> getAllUsers();
     Optional<User> getUserById(String id);
     Optional<User> updateUser(String id, User user);
+    boolean deleteUser(String id);
 }
