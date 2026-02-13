@@ -96,4 +96,44 @@ class UserControllerIntegrationTest {
                 .andExpect(jsonPath("$", isA(java.util.List.class)))
                 .andExpect(jsonPath("$.length()", greaterThanOrEqualTo(2)));
     }
+    
+    @Test
+    void testGetUserById_IntegrationTest() throws Exception {
+        // Arrange - Create a user first
+        User user = new User("Get By ID User", "getbyid@test.com", 40);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        String response = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        
+        User createdUser = objectMapper.readValue(response, User.class);
+        String userId = createdUser.getId();
+        
+        // Act & Assert - Get user by ID
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", is(userId)))
+                .andExpect(jsonPath("$.name", is("Get By ID User")))
+                .andExpect(jsonPath("$.email", is("getbyid@test.com")))
+                .andExpect(jsonPath("$.age", is(40)));
+    }
+    
+    @Test
+    void testGetUserById_NotFound() throws Exception {
+        // Arrange
+        String nonExistentId = "000000000000000000000000";
+        
+        // Act & Assert - Try to get non-existent user
+        mockMvc.perform(get("/api/v1/users/{id}", nonExistentId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status", is(404)))
+                .andExpect(jsonPath("$.error", is("Not Found")))
+                .andExpect(jsonPath("$.message", containsString("User not found")));
+    }
 }

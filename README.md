@@ -3,6 +3,7 @@
 ## Task Status
 - **US-001**: ✅ Completed
 - **US-002**: ✅ Completed
+- **US-003**: ✅ Completed
 
 ## Overview
 User Management application built with Spring Boot providing REST API endpoints for CRUD operations on user entities.

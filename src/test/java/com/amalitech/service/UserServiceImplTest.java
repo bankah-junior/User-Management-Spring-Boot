@@ -206,4 +206,53 @@ class UserServiceImplTest {
         verify(mongoTemplate, times(1)).findAll(User.class);
     }
 
+    // US-003: Get User by ID Tests
+    
+    @Test
+    @DisplayName("Should return user when found by ID")
+    void testGetUserByIdSuccess() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(testUser);
+
+        // Act
+        java.util.Optional<User> result = userService.getUserById(userId);
+
+        // Assert
+        assertTrue(result.isPresent(), "User should be present");
+        assertEquals(testUser.getId(), result.get().getId());
+        assertEquals(testUser.getName(), result.get().getName());
+        assertEquals(testUser.getEmail(), result.get().getEmail());
+        verify(mongoTemplate, times(1)).findById(userId, User.class);
+    }
+
+    @Test
+    @DisplayName("Should return empty Optional when user not found")
+    void testGetUserByIdNotFound() {
+        // Arrange
+        String userId = "nonexistent123";
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(null);
+
+        // Act
+        java.util.Optional<User> result = userService.getUserById(userId);
+
+        // Assert
+        assertFalse(result.isPresent(), "User should not be present");
+        verify(mongoTemplate, times(1)).findById(userId, User.class);
+    }
+
+    @Test
+    @DisplayName("Should call mongoTemplate.findById with correct parameters")
+    void testGetUserByIdCallsMongoTemplate() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(testUser);
+
+        // Act
+        userService.getUserById(userId);
+
+        // Assert
+        verify(mongoTemplate, times(1)).findById(userId, User.class);
+    }
+
 }
