@@ -1,5 +1,6 @@
 package com.amalitech.model;
 
+import jakarta.validation.constraints.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -8,8 +9,17 @@ public class User {
     
     @Id
     private String id;
+    
+    @NotBlank(message = "Name is required and cannot be blank")
     private String name;
+    
+    @NotBlank(message = "Email is required and cannot be blank")
+    @Email(message = "Email must be a valid email address")
     private String email;
+    
+    @NotNull(message = "Age is required")
+    @Min(value = 18, message = "Age must be at least 18")
+    @Max(value = 100, message = "Age must not exceed 100")
     private Integer age;
     
     public User() {

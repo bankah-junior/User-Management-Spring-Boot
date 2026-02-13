@@ -136,4 +136,107 @@ class UserControllerIntegrationTest {
                 .andExpect(jsonPath("$.error", is("Not Found")))
                 .andExpect(jsonPath("$.message", containsString("User not found")));
     }
+    
+    // US-006: Input Validation Integration Tests
+    
+    @Test
+    void testCreateUser_ValidationError_BlankName() throws Exception {
+        // Arrange
+        User user = new User("", "test@example.com", 25);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.error", is("Bad Request")))
+                .andExpect(jsonPath("$.message", is("Validation failed")))
+                .andExpect(jsonPath("$.fieldErrors.name", is("Name is required and cannot be blank")));
+    }
+    
+    @Test
+    void testCreateUser_ValidationError_InvalidEmail() throws Exception {
+        // Arrange
+        User user = new User("Test User", "invalid-email", 25);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.error", is("Bad Request")))
+                .andExpect(jsonPath("$.fieldErrors.email", is("Email must be a valid email address")));
+    }
+    
+    @Test
+    void testCreateUser_ValidationError_AgeTooLow() throws Exception {
+        // Arrange
+        User user = new User("Test User", "test@example.com", 17);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.fieldErrors.age", is("Age must be at least 18")));
+    }
+    
+    @Test
+    void testCreateUser_ValidationError_AgeTooHigh() throws Exception {
+        // Arrange
+        User user = new User("Test User", "test@example.com", 101);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.fieldErrors.age", is("Age must not exceed 100")));
+    }
+    
+    @Test
+    void testCreateUser_ValidationError_MultipleFields() throws Exception {
+        // Arrange - All fields invalid
+        User user = new User("", "invalid-email", 17);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.error", is("Bad Request")))
+                .andExpect(jsonPath("$.message", is("Validation failed")))
+                .andExpect(jsonPath("$.fieldErrors.name").exists())
+                .andExpect(jsonPath("$.fieldErrors.email").exists())
+                .andExpect(jsonPath("$.fieldErrors.age").exists());
+    }
+    
+    @Test
+    void testCreateUser_ValidationSuccess_BoundaryAge() throws Exception {
+        // Test minimum boundary (18)
+        User user18 = new User("Test User 18", "test18@example.com", 18);
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user18)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.age", is(18)));
+        
+        // Test maximum boundary (100)
+        User user100 = new User("Test User 100", "test100@example.com", 100);
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user100)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.age", is(100)));
+    }
 }
