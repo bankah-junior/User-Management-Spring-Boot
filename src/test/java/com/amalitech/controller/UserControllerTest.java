@@ -253,4 +253,54 @@ class UserControllerTest {
         verify(userService, times(1)).getAllUsers();
     }
 
+    // US-003: Get User by ID Tests
+    
+    @Test
+    @DisplayName("Should return user and status 200 OK when user exists")
+    void testGetUserByIdSuccess() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(userService.getUserById(userId)).thenReturn(java.util.Optional.of(testUser));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", is(userId)))
+                .andExpect(jsonPath("$.name", is("John Doe")))
+                .andExpect(jsonPath("$.email", is("john.doe@example.com")))
+                .andExpect(jsonPath("$.age", is(30)));
+
+        verify(userService, times(1)).getUserById(userId);
+    }
+
+    @Test
+    @DisplayName("Should return 404 Not Found when user doesn't exist")
+    void testGetUserByIdNotFound() throws Exception {
+        // Arrange
+        String userId = "nonexistent123";
+        when(userService.getUserById(userId)).thenReturn(java.util.Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isNotFound());
+
+        verify(userService, times(1)).getUserById(userId);
+    }
+
+    @Test
+    @DisplayName("Should call userService.getUserById with correct ID")
+    void testGetUserByIdCallsService() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(userService.getUserById(userId)).thenReturn(java.util.Optional.of(testUser));
+
+        // Act
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isOk());
+
+        // Assert
+        verify(userService, times(1)).getUserById(userId);
+    }
+
 }

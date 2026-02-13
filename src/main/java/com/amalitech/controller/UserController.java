@@ -1,5 +1,6 @@
 package com.amalitech.controller;
 
+import com.amalitech.exception.UserNotFoundException;
 import com.amalitech.model.User;
 import com.amalitech.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -28,5 +29,12 @@ public class UserController {
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable String id) {
+        return userService.getUserById(id)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new UserNotFoundException(id));
     }
 }

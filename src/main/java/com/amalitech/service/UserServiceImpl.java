@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -23,5 +24,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getAllUsers() {
         return mongoTemplate.findAll(User.class);
+    }
+    
+    @Override
+    public Optional<User> getUserById(String id) {
+        User user = mongoTemplate.findById(id, User.class);
+        return Optional.ofNullable(user);
     }
 }
