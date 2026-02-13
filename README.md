@@ -19,11 +19,33 @@ User Management application built with Spring Boot providing REST API endpoints 
 - ✅ **RESTful API** - Complete CRUD operations
 - ✅ **User Management** - Create, Read, Update, Delete users
 - ✅ **Input Validation** - Bean Validation with custom error messages
+- ✅ **Unique Email Enforcement** - Prevents duplicate email addresses
 - ✅ **MongoDB Integration** - NoSQL database with MongoTemplate
 - ✅ **Exception Handling** - Global exception handler with structured error responses
-- ✅ **API Documentation** - Swagger/OpenAPI ready
+- ✅ **API Documentation** - Interactive Swagger/OpenAPI documentation
 - ✅ **Comprehensive Testing** - Unit, integration, and validation tests
 - ✅ **CI/CD Pipeline** - Automated build and test with GitHub Actions
+
+## API Documentation
+
+### Swagger UI
+Access the interactive API documentation at:
+```
+http://localhost:8080/swagger-ui.html
+```
+
+### OpenAPI Specification
+View the raw OpenAPI specification at:
+```
+http://localhost:8080/api-docs
+```
+
+The Swagger UI provides:
+- 📖 Complete API endpoint documentation
+- 🧪 Interactive API testing interface
+- 📋 Request/response examples
+- ✅ Validation rules and constraints
+- 🔍 Schema definitions
 
 ## API Endpoints
 
@@ -38,26 +60,62 @@ Content-Type: application/json
   "age": 25
 }
 ```
+**Responses:**
+- `201 Created` - User created successfully
+- `400 Bad Request` - Validation failed
+- `409 Conflict` - Email already exists
 
 ### Get All Users
 ```http
 GET /api/v1/users
 ```
+**Responses:**
+- `200 OK` - Returns array of users
 
 ### Get User by ID
 ```http
 GET /api/v1/users/{id}
 ```
+**Responses:**
+- `200 OK` - User found
+- `404 Not Found` - User not found
+
+### Update User
+```http
+PUT /api/v1/users/{id}
+Content-Type: application/json
+
+{
+  "name": "John Updated",
+  "email": "john.updated@example.com",
+  "age": 30
+}
+```
+**Responses:**
+- `200 OK` - User updated successfully
+- `400 Bad Request` - Validation failed
+- `404 Not Found` - User not found
+- `409 Conflict` - Email already exists
+
+### Delete User
+```http
+DELETE /api/v1/users/{id}
+```
+**Responses:**
+- `204 No Content` - User deleted successfully
+- `404 Not Found` - User not found
 
 ## Validation Rules
 - **Name**: Required, cannot be blank
-- **Email**: Required, must be a valid email format
+- **Email**: Required, must be a valid email format, must be unique
 - **Age**: Required, must be between 18 and 100
 
 ## Technology Stack
 - **Java 21** - Latest LTS version
 - **Spring Boot 4.0.2** - Application framework
 - **Spring Data MongoDB** - Database integration
+- **SpringDoc OpenAPI** - API documentation (Swagger UI)
+- **Spring Boot Validation** - Input validation
 - **Spring Boot Validation** - Input validation
 - **MongoDB** - NoSQL database
 - **Maven** - Build tool and dependency management
