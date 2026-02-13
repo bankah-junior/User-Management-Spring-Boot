@@ -391,4 +391,107 @@ class UserControllerTest {
         verify(userService, never()).createUser(any(User.class));
     }
 
+    // US-004: Update User Tests
+    
+    @Test
+    @DisplayName("Should update user and return 200 OK when user exists")
+    void testUpdateUserSuccess() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("Jane Updated", "jane.updated@example.com", 28);
+        User updatedUser = new User("Jane Updated", "jane.updated@example.com", 28);
+        updatedUser.setId(userId);
+        
+        when(userService.updateUser(eq(userId), any(User.class))).thenReturn(java.util.Optional.of(updatedUser));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", is(userId)))
+                .andExpect(jsonPath("$.name", is("Jane Updated")))
+                .andExpect(jsonPath("$.email", is("jane.updated@example.com")))
+                .andExpect(jsonPath("$.age", is(28)));
+
+        verify(userService, times(1)).updateUser(eq(userId), any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should return 404 Not Found when updating non-existent user")
+    void testUpdateUserNotFound() throws Exception {
+        // Arrange
+        String userId = "nonexistent123";
+        User updateData = new User("Jane Updated", "jane.updated@example.com", 28);
+        when(userService.updateUser(eq(userId), any(User.class))).thenReturn(java.util.Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+                .andExpect(status().isNotFound());
+
+        verify(userService, times(1)).updateUser(eq(userId), any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should validate input when updating user")
+    void testUpdateUserValidation() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User invalidUpdateData = new User("", "invalid-email", 17);
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidUpdateData)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.error", is("Bad Request")))
+                .andExpect(jsonPath("$.fieldErrors").exists());
+
+        verify(userService, never()).updateUser(anyString(), any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should call userService.updateUser with correct parameters")
+    void testUpdateUserCallsService() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("Updated Name", "updated@example.com", 30);
+        when(userService.updateUser(eq(userId), any(User.class))).thenReturn(java.util.Optional.of(testUser));
+
+        // Act
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+                .andExpect(status().isOk());
+
+        // Assert
+        verify(userService, times(1)).updateUser(eq(userId), any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should return updated user with all fields")
+    void testUpdateUserReturnsCompleteUser() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("Complete User", "complete@example.com", 45);
+        User updatedUser = new User("Complete User", "complete@example.com", 45);
+        updatedUser.setId(userId);
+        
+        when(userService.updateUser(eq(userId), any(User.class))).thenReturn(java.util.Optional.of(updatedUser));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.name").exists())
+                .andExpect(jsonPath("$.email").exists())
+                .andExpect(jsonPath("$.age").exists());
+    }
+
 }

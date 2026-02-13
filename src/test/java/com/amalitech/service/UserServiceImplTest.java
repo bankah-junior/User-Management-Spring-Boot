@@ -255,4 +255,110 @@ class UserServiceImplTest {
         verify(mongoTemplate, times(1)).findById(userId, User.class);
     }
 
+    // US-004: Update User Tests
+    
+    @Test
+    @DisplayName("Should update user successfully when user exists")
+    void testUpdateUserSuccess() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("Jane Updated", "jane.updated@example.com", 28);
+        
+        User updatedUser = new User("Jane Updated", "jane.updated@example.com", 28);
+        updatedUser.setId(userId);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(testUser);
+        when(mongoTemplate.save(any(User.class))).thenReturn(updatedUser);
+
+        // Act
+        java.util.Optional<User> result = userService.updateUser(userId, updateData);
+
+        // Assert
+        assertTrue(result.isPresent(), "Updated user should be present");
+        assertEquals("Jane Updated", result.get().getName());
+        assertEquals("jane.updated@example.com", result.get().getEmail());
+        assertEquals(28, result.get().getAge());
+        verify(mongoTemplate, times(1)).findById(userId, User.class);
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should return empty Optional when user not found for update")
+    void testUpdateUserNotFound() {
+        // Arrange
+        String userId = "nonexistent123";
+        User updateData = new User("Jane Updated", "jane.updated@example.com", 28);
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(null);
+
+        // Act
+        java.util.Optional<User> result = userService.updateUser(userId, updateData);
+
+        // Assert
+        assertFalse(result.isPresent(), "User should not be present");
+        verify(mongoTemplate, times(1)).findById(userId, User.class);
+        verify(mongoTemplate, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should update all user fields")
+    void testUpdateUserAllFields() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("New Name", "new.email@example.com", 50);
+        
+        User existingUser = new User("Old Name", "old.email@example.com", 30);
+        existingUser.setId(userId);
+        
+        User savedUser = new User("New Name", "new.email@example.com", 50);
+        savedUser.setId(userId);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(existingUser);
+        when(mongoTemplate.save(any(User.class))).thenReturn(savedUser);
+
+        // Act
+        java.util.Optional<User> result = userService.updateUser(userId, updateData);
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals("New Name", result.get().getName());
+        assertEquals("new.email@example.com", result.get().getEmail());
+        assertEquals(50, result.get().getAge());
+        assertEquals(userId, result.get().getId());
+    }
+
+    @Test
+    @DisplayName("Should preserve user ID when updating")
+    void testUpdateUserPreservesId() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("Updated Name", "updated@example.com", 35);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(testUser);
+        when(mongoTemplate.save(any(User.class))).thenReturn(testUser);
+
+        // Act
+        java.util.Optional<User> result = userService.updateUser(userId, updateData);
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(userId, result.get().getId());
+    }
+
+    @Test
+    @DisplayName("Should call mongoTemplate save with updated user")
+    void testUpdateUserCallsSave() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("Updated", "updated@example.com", 40);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(testUser);
+        when(mongoTemplate.save(any(User.class))).thenReturn(testUser);
+
+        // Act
+        userService.updateUser(userId, updateData);
+
+        // Assert
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
 }
