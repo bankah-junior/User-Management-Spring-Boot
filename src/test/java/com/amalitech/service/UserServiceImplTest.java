@@ -9,6 +9,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -145,6 +148,62 @@ class UserServiceImplTest {
         // Assert
         verify(mongoTemplate).save(userToSave);
         verifyNoMoreInteractions(mongoTemplate);
+    }
+
+    // US-002: Get All Users Tests
+    
+    @Test
+    @DisplayName("Should return all users from database")
+    void testGetAllUsersSuccess() {
+        // Arrange
+        User user1 = new User("User One", "user1@example.com", 25);
+        user1.setId("1");
+        User user2 = new User("User Two", "user2@example.com", 30);
+        user2.setId("2");
+        User user3 = new User("User Three", "user3@example.com", 35);
+        user3.setId("3");
+        
+        List<User> expectedUsers = Arrays.asList(user1, user2, user3);
+        when(mongoTemplate.findAll(User.class)).thenReturn(expectedUsers);
+
+        // Act
+        List<User> actualUsers = userService.getAllUsers();
+
+        // Assert
+        assertNotNull(actualUsers, "User list should not be null");
+        assertEquals(3, actualUsers.size(), "Should return 3 users");
+        assertEquals("User One", actualUsers.get(0).getName());
+        assertEquals("User Two", actualUsers.get(1).getName());
+        assertEquals("User Three", actualUsers.get(2).getName());
+        verify(mongoTemplate, times(1)).findAll(User.class);
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no users exist")
+    void testGetAllUsersEmptyList() {
+        // Arrange
+        when(mongoTemplate.findAll(User.class)).thenReturn(Arrays.asList());
+
+        // Act
+        List<User> actualUsers = userService.getAllUsers();
+
+        // Assert
+        assertNotNull(actualUsers, "User list should not be null");
+        assertEquals(0, actualUsers.size(), "Should return empty list");
+        verify(mongoTemplate, times(1)).findAll(User.class);
+    }
+
+    @Test
+    @DisplayName("Should call mongoTemplate.findAll with correct class")
+    void testGetAllUsersCallsMongoTemplate() {
+        // Arrange
+        when(mongoTemplate.findAll(User.class)).thenReturn(Arrays.asList());
+
+        // Act
+        userService.getAllUsers();
+
+        // Assert
+        verify(mongoTemplate, times(1)).findAll(User.class);
     }
 
 }
