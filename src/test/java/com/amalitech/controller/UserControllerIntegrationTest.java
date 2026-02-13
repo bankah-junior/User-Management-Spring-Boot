@@ -15,6 +15,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -354,5 +355,115 @@ class UserControllerIntegrationTest {
                 .andExpect(jsonPath("$.name", is("Updated Name Only")))
                 .andExpect(jsonPath("$.email", is("updated.email@test.com")))
                 .andExpect(jsonPath("$.age", is(40)));
+    }
+    
+    // US-005: Delete User Integration Tests
+    
+    @Test
+    void testDeleteUser_IntegrationTest() throws Exception {
+        // Arrange - Create a user first
+        User user = new User("Delete Test User", "delete@test.com", 30);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        String response = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        
+        User createdUser = objectMapper.readValue(response, User.class);
+        String userId = createdUser.getId();
+        
+        // Act & Assert - Delete the user
+        mockMvc.perform(delete("/api/v1/users/{id}", userId))
+                .andExpect(status().isNoContent());
+        
+        // Verify user is deleted by trying to get it
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isNotFound());
+    }
+    
+    @Test
+    void testDeleteUser_NotFound() throws Exception {
+        // Arrange
+        String nonExistentId = "000000000000000000000000";
+        
+        // Act & Assert - Try to delete non-existent user
+        mockMvc.perform(delete("/api/v1/users/{id}", nonExistentId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status", is(404)))
+                .andExpect(jsonPath("$.error", is("Not Found")))
+                .andExpect(jsonPath("$.message", containsString("User not found")));
+    }
+    
+    @Test
+    void testDeleteUser_VerifyRemoval() throws Exception {
+        // Arrange - Create a user
+        User user = new User("Removal Test", "removal@test.com", 25);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        String response = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        
+        User createdUser = objectMapper.readValue(response, User.class);
+        String userId = createdUser.getId();
+        
+        // Verify user exists
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isOk());
+        
+        // Act - Delete the user
+        mockMvc.perform(delete("/api/v1/users/{id}", userId))
+                .andExpect(status().isNoContent());
+        
+        // Assert - Verify user no longer exists
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isNotFound());
+    }
+    
+    @Test
+    void testDeleteUser_CompleteLifecycle() throws Exception {
+        // Create, Read, Update, Delete lifecycle test
+        
+        // 1. Create
+        User user = new User("Lifecycle User", "lifecycle@test.com", 30);
+        String createResponse = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        
+        User createdUser = objectMapper.readValue(createResponse, User.class);
+        String userId = createdUser.getId();
+        
+        // 2. Read
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("Lifecycle User")));
+        
+        // 3. Update
+        User updateData = new User("Updated Lifecycle", "updated.lifecycle@test.com", 35);
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateData)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("Updated Lifecycle")));
+        
+        // 4. Delete
+        mockMvc.perform(delete("/api/v1/users/{id}", userId))
+                .andExpect(status().isNoContent());
+        
+        // 5. Verify deletion
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isNotFound());
     }
 }

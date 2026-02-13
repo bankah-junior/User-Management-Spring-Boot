@@ -494,4 +494,62 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.age").exists());
     }
 
+    // US-005: Delete User Tests
+    
+    @Test
+    @DisplayName("Should delete user and return 204 No Content when user exists")
+    void testDeleteUserSuccess() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(userService.deleteUser(userId)).thenReturn(true);
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/users/{id}", userId))
+                .andExpect(status().isNoContent());
+
+        verify(userService, times(1)).deleteUser(userId);
+    }
+
+    @Test
+    @DisplayName("Should return 404 Not Found when deleting non-existent user")
+    void testDeleteUserNotFound() throws Exception {
+        // Arrange
+        String userId = "nonexistent123";
+        when(userService.deleteUser(userId)).thenReturn(false);
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/users/{id}", userId))
+                .andExpect(status().isNotFound());
+
+        verify(userService, times(1)).deleteUser(userId);
+    }
+
+    @Test
+    @DisplayName("Should call userService.deleteUser with correct ID")
+    void testDeleteUserCallsService() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(userService.deleteUser(userId)).thenReturn(true);
+
+        // Act
+        mockMvc.perform(delete("/api/v1/users/{id}", userId))
+                .andExpect(status().isNoContent());
+
+        // Assert
+        verify(userService, times(1)).deleteUser(userId);
+    }
+
+    @Test
+    @DisplayName("Should return empty body on successful deletion")
+    void testDeleteUserReturnsEmptyBody() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        when(userService.deleteUser(userId)).thenReturn(true);
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/users/{id}", userId))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+    }
+
 }

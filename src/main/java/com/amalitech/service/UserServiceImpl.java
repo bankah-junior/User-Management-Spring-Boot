@@ -2,6 +2,8 @@ package com.amalitech.service;
 
 import com.amalitech.model.User;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -48,5 +50,19 @@ public class UserServiceImpl implements UserService {
         // Save updated user
         User updatedUser = mongoTemplate.save(existingUser);
         return Optional.of(updatedUser);
+    }
+    
+    @Override
+    public boolean deleteUser(String id) {
+        // Check if user exists
+        User existingUser = mongoTemplate.findById(id, User.class);
+        if (existingUser == null) {
+            return false;
+        }
+        
+        // Delete user
+        Query query = new Query(Criteria.where("_id").is(id));
+        mongoTemplate.remove(query, User.class);
+        return true;
     }
 }
