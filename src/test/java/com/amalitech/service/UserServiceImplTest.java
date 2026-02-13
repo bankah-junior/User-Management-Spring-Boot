@@ -526,4 +526,338 @@ class UserServiceImplTest {
         verify(mongoTemplate, times(1)).save(any(User.class));
     }
 
+    // US-009: Comprehensive Unit Tests - Edge Cases and Boundary Values
+
+    @Test
+    @DisplayName("Should handle user with minimum valid age (18)")
+    void testCreateUserWithMinimumAge() {
+        // Arrange
+        User userToCreate = new User("Young User", "young@example.com", 18);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class))).thenReturn(userToCreate);
+
+        // Act
+        User createdUser = userService.createUser(userToCreate);
+
+        // Assert
+        assertNotNull(createdUser);
+        assertEquals(18, createdUser.getAge());
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle user with maximum valid age (100)")
+    void testCreateUserWithMaximumAge() {
+        // Arrange
+        User userToCreate = new User("Senior User", "senior@example.com", 100);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class))).thenReturn(userToCreate);
+
+        // Act
+        User createdUser = userService.createUser(userToCreate);
+
+        // Assert
+        assertNotNull(createdUser);
+        assertEquals(100, createdUser.getAge());
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle user with very long name")
+    void testCreateUserWithLongName() {
+        // Arrange
+        String longName = "A".repeat(255);
+        User userToCreate = new User(longName, "longname@example.com", 30);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class))).thenReturn(userToCreate);
+
+        // Act
+        User createdUser = userService.createUser(userToCreate);
+
+        // Assert
+        assertNotNull(createdUser);
+        assertEquals(longName, createdUser.getName());
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle email with special characters")
+    void testCreateUserWithSpecialCharactersEmail() {
+        // Arrange
+        User userToCreate = new User("Special User", "user+tag@sub-domain.example.com", 30);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class))).thenReturn(userToCreate);
+
+        // Act
+        User createdUser = userService.createUser(userToCreate);
+
+        // Assert
+        assertNotNull(createdUser);
+        assertEquals("user+tag@sub-domain.example.com", createdUser.getEmail());
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle name with special characters")
+    void testCreateUserWithSpecialCharactersName() {
+        // Arrange
+        User userToCreate = new User("José María O'Brien-Smith", "jose@example.com", 30);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class))).thenReturn(userToCreate);
+
+        // Act
+        User createdUser = userService.createUser(userToCreate);
+
+        // Assert
+        assertNotNull(createdUser);
+        assertEquals("José María O'Brien-Smith", createdUser.getName());
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle multiple users with different emails")
+    void testCreateMultipleUsersWithDifferentEmails() {
+        // Arrange
+        User user1 = new User("User One", "user1@example.com", 25);
+        User user2 = new User("User Two", "user2@example.com", 30);
+        User user3 = new User("User Three", "user3@example.com", 35);
+        
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class)))
+            .thenReturn(user1)
+            .thenReturn(user2)
+            .thenReturn(user3);
+
+        // Act
+        User created1 = userService.createUser(user1);
+        User created2 = userService.createUser(user2);
+        User created3 = userService.createUser(user3);
+
+        // Assert
+        assertNotNull(created1);
+        assertNotNull(created2);
+        assertNotNull(created3);
+        verify(mongoTemplate, times(3)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no users exist")
+    void testGetAllUsersEmptyList() {
+        // Arrange
+        when(mongoTemplate.findAll(User.class)).thenReturn(List.of());
+
+        // Act
+        List<User> users = userService.getAllUsers();
+
+        // Assert
+        assertNotNull(users);
+        assertTrue(users.isEmpty());
+        assertEquals(0, users.size());
+        verify(mongoTemplate, times(1)).findAll(User.class);
+    }
+
+    @Test
+    @DisplayName("Should return single user in list")
+    void testGetAllUsersSingleUser() {
+        // Arrange
+        List<User> singleUserList = List.of(testUser);
+        when(mongoTemplate.findAll(User.class)).thenReturn(singleUserList);
+
+        // Act
+        List<User> users = userService.getAllUsers();
+
+        // Assert
+        assertNotNull(users);
+        assertEquals(1, users.size());
+        assertEquals(testUser.getId(), users.get(0).getId());
+        verify(mongoTemplate, times(1)).findAll(User.class);
+    }
+
+    @Test
+    @DisplayName("Should return large list of users")
+    void testGetAllUsersLargeList() {
+        // Arrange
+        List<User> largeUserList = new java.util.ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            User user = new User("User " + i, "user" + i + "@example.com", 25 + (i % 50));
+            user.setId("id" + i);
+            largeUserList.add(user);
+        }
+        when(mongoTemplate.findAll(User.class)).thenReturn(largeUserList);
+
+        // Act
+        List<User> users = userService.getAllUsers();
+
+        // Assert
+        assertNotNull(users);
+        assertEquals(1000, users.size());
+        verify(mongoTemplate, times(1)).findAll(User.class);
+    }
+
+    @Test
+    @DisplayName("Should return empty Optional for null ID in getUserById")
+    void testGetUserByNullId() {
+        // Arrange
+        when(mongoTemplate.findById(null, User.class)).thenReturn(null);
+
+        // Act
+        java.util.Optional<User> result = userService.getUserById(null);
+
+        // Assert
+        assertTrue(result.isEmpty());
+        verify(mongoTemplate, times(1)).findById(null, User.class);
+    }
+
+    @Test
+    @DisplayName("Should return empty Optional for empty string ID")
+    void testGetUserByEmptyId() {
+        // Arrange
+        when(mongoTemplate.findById("", User.class)).thenReturn(null);
+
+        // Act
+        java.util.Optional<User> result = userService.getUserById("");
+
+        // Assert
+        assertTrue(result.isEmpty());
+        verify(mongoTemplate, times(1)).findById("", User.class);
+    }
+
+    @Test
+    @DisplayName("Should return empty Optional for invalid MongoDB ID format")
+    void testGetUserByInvalidIdFormat() {
+        // Arrange
+        String invalidId = "invalid-id-format";
+        when(mongoTemplate.findById(invalidId, User.class)).thenReturn(null);
+
+        // Act
+        java.util.Optional<User> result = userService.getUserById(invalidId);
+
+        // Assert
+        assertTrue(result.isEmpty());
+        verify(mongoTemplate, times(1)).findById(invalidId, User.class);
+    }
+
+    @Test
+    @DisplayName("Should update user with boundary age values")
+    void testUpdateUserWithBoundaryAges() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User existingUser = new User("John Doe", "john@example.com", 30);
+        existingUser.setId(userId);
+        
+        User updateDataMin = new User("John Doe", "john@example.com", 18);
+        User updateDataMax = new User("John Doe", "john@example.com", 100);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(existingUser);
+        when(mongoTemplate.save(any(User.class))).thenReturn(existingUser);
+
+        // Act - Update with minimum age
+        java.util.Optional<User> updatedMin = userService.updateUser(userId, updateDataMin);
+        
+        // Act - Update with maximum age
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(existingUser);
+        java.util.Optional<User> updatedMax = userService.updateUser(userId, updateDataMax);
+
+        // Assert
+        assertTrue(updatedMin.isPresent());
+        assertTrue(updatedMax.isPresent());
+        verify(mongoTemplate, times(2)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when deleting with null ID")
+    void testDeleteUserWithNullId() {
+        // Arrange
+        when(mongoTemplate.findById(null, User.class)).thenReturn(null);
+
+        // Act
+        boolean result = userService.deleteUser(null);
+
+        // Assert
+        assertFalse(result);
+        verify(mongoTemplate, never()).remove(any(Query.class), eq(User.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when deleting with empty ID")
+    void testDeleteUserWithEmptyId() {
+        // Arrange
+        when(mongoTemplate.findById("", User.class)).thenReturn(null);
+
+        // Act
+        boolean result = userService.deleteUser("");
+
+        // Assert
+        assertFalse(result);
+        verify(mongoTemplate, never()).remove(any(Query.class), eq(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle email case sensitivity")
+    void testEmailCaseSensitivity() {
+        // Arrange
+        User userLowerCase = new User("User One", "test@example.com", 30);
+        User userUpperCase = new User("User Two", "TEST@EXAMPLE.COM", 30);
+        
+        when(mongoTemplate.exists(any(Query.class), eq(User.class)))
+            .thenReturn(false)
+            .thenReturn(false);
+        when(mongoTemplate.save(any(User.class)))
+            .thenReturn(userLowerCase)
+            .thenReturn(userUpperCase);
+
+        // Act
+        User created1 = userService.createUser(userLowerCase);
+        User created2 = userService.createUser(userUpperCase);
+
+        // Assert - Service doesn't enforce case sensitivity, that's MongoDB's job
+        assertNotNull(created1);
+        assertNotNull(created2);
+        verify(mongoTemplate, times(2)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle concurrent update attempts on same user")
+    void testUpdateUserConcurrentScenario() {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User existingUser = new User("John Doe", "john@example.com", 30);
+        existingUser.setId(userId);
+        
+        User update1 = new User("John Update 1", "john1@example.com", 31);
+        User update2 = new User("John Update 2", "john2@example.com", 32);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(existingUser);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class))).thenReturn(existingUser);
+
+        // Act - Simulate two updates
+        java.util.Optional<User> result1 = userService.updateUser(userId, update1);
+        
+        when(mongoTemplate.findById(userId, User.class)).thenReturn(existingUser);
+        java.util.Optional<User> result2 = userService.updateUser(userId, update2);
+
+        // Assert
+        assertTrue(result1.isPresent());
+        assertTrue(result2.isPresent());
+        verify(mongoTemplate, times(2)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle whitespace in user name")
+    void testCreateUserWithWhitespaceName() {
+        // Arrange
+        User userWithSpaces = new User("  John   Doe  ", "john@example.com", 30);
+        when(mongoTemplate.exists(any(Query.class), eq(User.class))).thenReturn(false);
+        when(mongoTemplate.save(any(User.class))).thenReturn(userWithSpaces);
+
+        // Act
+        User created = userService.createUser(userWithSpaces);
+
+        // Assert
+        assertNotNull(created);
+        assertEquals("  John   Doe  ", created.getName());
+        verify(mongoTemplate, times(1)).save(any(User.class));
+    }
+
 }

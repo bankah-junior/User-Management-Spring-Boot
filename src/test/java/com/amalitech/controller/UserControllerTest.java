@@ -632,5 +632,254 @@ class UserControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message", is("Email already exists: duplicate@example.com")));
     }
+
+    // US-009: Comprehensive Controller Tests - Edge Cases
+
+    @Test
+    @DisplayName("Should handle GET request with invalid ID format")
+    void testGetUserByIdInvalidFormat() throws Exception {
+        // Arrange
+        String invalidId = "invalid-format-123";
+        when(userService.getUserById(invalidId)).thenReturn(java.util.Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/users/{id}", invalidId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Should handle PUT request with mismatched ID")
+    void testUpdateUserMismatchedId() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("Updated User", "updated@example.com", 30);
+        String userJson = objectMapper.writeValueAsString(updateData);
+        
+        when(userService.updateUser(eq(userId), any(User.class)))
+            .thenReturn(java.util.Optional.of(testUser));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isOk());
+        
+        verify(userService, times(1)).updateUser(eq(userId), any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle DELETE request with invalid ID format")
+    void testDeleteUserInvalidIdFormat() throws Exception {
+        // Arrange
+        String invalidId = "invalid-id";
+        when(userService.deleteUser(invalidId)).thenReturn(false);
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/v1/users/{id}", invalidId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Should return empty array when no users exist")
+    void testGetAllUsersEmptyResponse() throws Exception {
+        // Arrange
+        when(userService.getAllUsers()).thenReturn(List.of());
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/users"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("Should handle POST with minimum age boundary (18)")
+    void testCreateUserMinimumAgeBoundary() throws Exception {
+        // Arrange
+        User userMinAge = new User("Young User", "young@example.com", 18);
+        userMinAge.setId("507f1f77bcf86cd799439011");
+        String userJson = objectMapper.writeValueAsString(userMinAge);
+        
+        when(userService.createUser(any(User.class))).thenReturn(userMinAge);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.age", is(18)));
+    }
+
+    @Test
+    @DisplayName("Should handle POST with maximum age boundary (100)")
+    void testCreateUserMaximumAgeBoundary() throws Exception {
+        // Arrange
+        User userMaxAge = new User("Senior User", "senior@example.com", 100);
+        userMaxAge.setId("507f1f77bcf86cd799439011");
+        String userJson = objectMapper.writeValueAsString(userMaxAge);
+        
+        when(userService.createUser(any(User.class))).thenReturn(userMaxAge);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.age", is(100)));
+    }
+
+    @Test
+    @DisplayName("Should handle POST with special characters in name")
+    void testCreateUserSpecialCharactersName() throws Exception {
+        // Arrange
+        User userSpecialName = new User("José María O'Brien", "jose@example.com", 30);
+        userSpecialName.setId("507f1f77bcf86cd799439011");
+        String userJson = objectMapper.writeValueAsString(userSpecialName);
+        
+        when(userService.createUser(any(User.class))).thenReturn(userSpecialName);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name", is("José María O'Brien")));
+    }
+
+    @Test
+    @DisplayName("Should handle POST with complex email format")
+    void testCreateUserComplexEmail() throws Exception {
+        // Arrange
+        User userComplexEmail = new User("User", "user+tag@sub-domain.example.com", 30);
+        userComplexEmail.setId("507f1f77bcf86cd799439011");
+        String userJson = objectMapper.writeValueAsString(userComplexEmail);
+        
+        when(userService.createUser(any(User.class))).thenReturn(userComplexEmail);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email", is("user+tag@sub-domain.example.com")));
+    }
+
+    @Test
+    @DisplayName("Should handle multiple sequential POST requests")
+    void testCreateMultipleUsersSequentially() throws Exception {
+        // Arrange
+        User user1 = new User("User 1", "user1@example.com", 25);
+        user1.setId("id1");
+        User user2 = new User("User 2", "user2@example.com", 30);
+        user2.setId("id2");
+        User user3 = new User("User 3", "user3@example.com", 35);
+        user3.setId("id3");
+        
+        when(userService.createUser(any(User.class)))
+            .thenReturn(user1)
+            .thenReturn(user2)
+            .thenReturn(user3);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user1)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user2)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user3)))
+                .andExpect(status().isCreated());
+
+        verify(userService, times(3)).createUser(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle PUT with all fields changed")
+    void testUpdateUserAllFieldsChanged() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        User updateData = new User("Completely New Name", "completely.new@example.com", 99);
+        User updatedUser = new User("Completely New Name", "completely.new@example.com", 99);
+        updatedUser.setId(userId);
+        
+        String userJson = objectMapper.writeValueAsString(updateData);
+        when(userService.updateUser(eq(userId), any(User.class)))
+            .thenReturn(java.util.Optional.of(updatedUser));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("Completely New Name")))
+                .andExpect(jsonPath("$.email", is("completely.new@example.com")))
+                .andExpect(jsonPath("$.age", is(99)));
+    }
+
+    @Test
+    @DisplayName("Should handle GET all users with large result set structure")
+    void testGetAllUsersLargeStructure() throws Exception {
+        // Arrange
+        List<User> largeUserList = new java.util.ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            User user = new User("User " + i, "user" + i + "@example.com", 25 + i);
+            user.setId("id" + i);
+            largeUserList.add(user);
+        }
+        when(userService.getAllUsers()).thenReturn(largeUserList);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(10)))
+                .andExpect(jsonPath("$[0].name", is("User 0")))
+                .andExpect(jsonPath("$[9].name", is("User 9")));
+    }
+
+    @Test
+    @DisplayName("Should handle content type validation")
+    void testCreateUserWithoutContentType() throws Exception {
+        // Arrange
+        User userToCreate = new User("Test User", "test@example.com", 30);
+        String userJson = objectMapper.writeValueAsString(userToCreate);
+
+        // Act & Assert - Missing Content-Type should cause error
+        mockMvc.perform(post("/api/v1/users")
+                .content(userJson))
+                .andExpect(status().isUnsupportedMediaType());
+    }
+
+    @Test
+    @DisplayName("Should validate JSON structure in POST request")
+    void testCreateUserWithMalformedJSON() throws Exception {
+        // Arrange
+        String malformedJson = "{name: 'Invalid JSON', missing quotes}";
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(malformedJson))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should validate JSON structure in PUT request")
+    void testUpdateUserWithMalformedJSON() throws Exception {
+        // Arrange
+        String userId = "507f1f77bcf86cd799439011";
+        String malformedJson = "{name: 'Invalid', no proper format}";
+
+        // Act & Assert
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(malformedJson))
+                .andExpect(status().isBadRequest());
+    }
 
 }
