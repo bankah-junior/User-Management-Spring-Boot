@@ -1,5 +1,6 @@
 package com.amalitech.service;
 
+import com.amalitech.exception.DuplicateEmailException;
 import com.amalitech.model.User;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -20,6 +21,10 @@ public class UserServiceImpl implements UserService {
     
     @Override
     public User createUser(User user) {
+        // Check if email already exists
+        if (emailExists(user.getEmail())) {
+            throw new DuplicateEmailException(user.getEmail());
+        }
         return mongoTemplate.save(user);
     }
     
@@ -40,6 +45,11 @@ public class UserServiceImpl implements UserService {
         User existingUser = mongoTemplate.findById(id, User.class);
         if (existingUser == null) {
             return Optional.empty();
+        }
+        
+        // Check if email is being changed and new email already exists
+        if (!existingUser.getEmail().equals(user.getEmail()) && emailExists(user.getEmail())) {
+            throw new DuplicateEmailException(user.getEmail());
         }
         
         // Update user fields
@@ -64,5 +74,10 @@ public class UserServiceImpl implements UserService {
         Query query = new Query(Criteria.where("_id").is(id));
         mongoTemplate.remove(query, User.class);
         return true;
+    }
+    
+    private boolean emailExists(String email) {
+        Query query = new Query(Criteria.where("email").is(email));
+        return mongoTemplate.exists(query, User.class);
     }
 }
