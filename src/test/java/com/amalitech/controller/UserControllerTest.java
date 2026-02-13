@@ -13,6 +13,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -190,6 +193,64 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.name", is("Chris Hemsworth")))
                 .andExpect(jsonPath("$.email", is("chris@example.com")))
                 .andExpect(jsonPath("$.age", is(40)));
+    }
+
+    // US-002: Get All Users Tests
+    
+    @Test
+    @DisplayName("Should return all users and status 200 OK")
+    void testGetAllUsersSuccess() throws Exception {
+        // Arrange
+        User user1 = new User("User One", "user1@example.com", 25);
+        user1.setId("1");
+        User user2 = new User("User Two", "user2@example.com", 30);
+        user2.setId("2");
+        User user3 = new User("User Three", "user3@example.com", 35);
+        user3.setId("3");
+        
+        List<User> users = Arrays.asList(user1, user2, user3);
+        when(userService.getAllUsers()).thenReturn(users);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(3)))
+                .andExpect(jsonPath("$[0].name", is("User One")))
+                .andExpect(jsonPath("$[1].name", is("User Two")))
+                .andExpect(jsonPath("$[2].name", is("User Three")));
+
+        verify(userService, times(1)).getAllUsers();
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no users exist")
+    void testGetAllUsersEmptyList() throws Exception {
+        // Arrange
+        when(userService.getAllUsers()).thenReturn(Arrays.asList());
+
+        // Act & Assert
+        mockMvc.perform(get("/api/v1/users"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        verify(userService, times(1)).getAllUsers();
+    }
+
+    @Test
+    @DisplayName("Should call userService.getAllUsers")
+    void testGetAllUsersCallsService() throws Exception {
+        // Arrange
+        when(userService.getAllUsers()).thenReturn(Arrays.asList());
+
+        // Act
+        mockMvc.perform(get("/api/v1/users"))
+                .andExpect(status().isOk());
+
+        // Assert
+        verify(userService, times(1)).getAllUsers();
     }
 
 }

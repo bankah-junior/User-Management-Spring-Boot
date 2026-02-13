@@ -15,6 +15,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -70,5 +71,29 @@ class UserControllerIntegrationTest {
                 .andExpect(jsonPath("$.name").value("End To End User"))
                 .andExpect(jsonPath("$.email").value("e2e@test.com"))
                 .andExpect(jsonPath("$.age").value(35));
+    }
+    
+    @Test
+    void testGetAllUsers_IntegrationTest() throws Exception {
+        // Arrange - Create a few users first
+        User user1 = new User("Get User 1", "getuser1@test.com", 20);
+        User user2 = new User("Get User 2", "getuser2@test.com", 25);
+        
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user1)))
+                .andExpect(status().isCreated());
+        
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user2)))
+                .andExpect(status().isCreated());
+        
+        // Act & Assert - Get all users
+        mockMvc.perform(get("/api/v1/users"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", isA(java.util.List.class)))
+                .andExpect(jsonPath("$.length()", greaterThanOrEqualTo(2)));
     }
 }
