@@ -38,4 +38,11 @@ public class UserController {
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new UserNotFoundException(id));
     }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable String id, @Valid @RequestBody User user) {
+        return userService.updateUser(id, user)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new UserNotFoundException(id));
+    }
 }

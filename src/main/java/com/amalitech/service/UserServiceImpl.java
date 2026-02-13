@@ -31,4 +31,22 @@ public class UserServiceImpl implements UserService {
         User user = mongoTemplate.findById(id, User.class);
         return Optional.ofNullable(user);
     }
+    
+    @Override
+    public Optional<User> updateUser(String id, User user) {
+        // Check if user exists
+        User existingUser = mongoTemplate.findById(id, User.class);
+        if (existingUser == null) {
+            return Optional.empty();
+        }
+        
+        // Update user fields
+        existingUser.setName(user.getName());
+        existingUser.setEmail(user.getEmail());
+        existingUser.setAge(user.getAge());
+        
+        // Save updated user
+        User updatedUser = mongoTemplate.save(existingUser);
+        return Optional.of(updatedUser);
+    }
 }

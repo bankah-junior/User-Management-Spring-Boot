@@ -17,6 +17,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -238,5 +239,120 @@ class UserControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(user100)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.age", is(100)));
+    }
+    
+    // US-004: Update User Integration Tests
+    
+    @Test
+    void testUpdateUser_IntegrationTest() throws Exception {
+        // Arrange - Create a user first
+        User user = new User("Original User", "original@test.com", 30);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        String response = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        
+        User createdUser = objectMapper.readValue(response, User.class);
+        String userId = createdUser.getId();
+        
+        // Prepare update data
+        User updateData = new User("Updated User", "updated@test.com", 35);
+        String updateJson = objectMapper.writeValueAsString(updateData);
+        
+        // Act & Assert - Update the user
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", is(userId)))
+                .andExpect(jsonPath("$.name", is("Updated User")))
+                .andExpect(jsonPath("$.email", is("updated@test.com")))
+                .andExpect(jsonPath("$.age", is(35)));
+    }
+    
+    @Test
+    void testUpdateUser_NotFound() throws Exception {
+        // Arrange
+        String nonExistentId = "000000000000000000000000";
+        User updateData = new User("Updated User", "updated@test.com", 35);
+        String updateJson = objectMapper.writeValueAsString(updateData);
+        
+        // Act & Assert - Try to update non-existent user
+        mockMvc.perform(put("/api/v1/users/{id}", nonExistentId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status", is(404)))
+                .andExpect(jsonPath("$.error", is("Not Found")))
+                .andExpect(jsonPath("$.message", containsString("User not found")));
+    }
+    
+    @Test
+    void testUpdateUser_ValidationError() throws Exception {
+        // Arrange - Create a user first
+        User user = new User("Valid User", "valid@test.com", 25);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        String response = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        
+        User createdUser = objectMapper.readValue(response, User.class);
+        String userId = createdUser.getId();
+        
+        // Prepare invalid update data
+        User invalidUpdateData = new User("", "invalid-email", 17);
+        String invalidJson = objectMapper.writeValueAsString(invalidUpdateData);
+        
+        // Act & Assert - Try to update with invalid data
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(invalidJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.error", is("Bad Request")))
+                .andExpect(jsonPath("$.fieldErrors").exists());
+    }
+    
+    @Test
+    void testUpdateUser_PartialUpdate() throws Exception {
+        // Arrange - Create a user first
+        User user = new User("Partial User", "partial@test.com", 40);
+        String userJson = objectMapper.writeValueAsString(user);
+        
+        String response = mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(userJson))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        
+        User createdUser = objectMapper.readValue(response, User.class);
+        String userId = createdUser.getId();
+        
+        // Update only name and email
+        User updateData = new User("Updated Name Only", "updated.email@test.com", 40);
+        String updateJson = objectMapper.writeValueAsString(updateData);
+        
+        // Act & Assert - Update the user
+        mockMvc.perform(put("/api/v1/users/{id}", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(userId)))
+                .andExpect(jsonPath("$.name", is("Updated Name Only")))
+                .andExpect(jsonPath("$.email", is("updated.email@test.com")))
+                .andExpect(jsonPath("$.age", is(40)));
     }
 }
