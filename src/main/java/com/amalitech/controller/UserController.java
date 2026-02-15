@@ -16,27 +16,51 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * REST controller for managing user resources.
+ */
 @RestController
 @RequestMapping("/api/v1/users")
-@Tag(name = "User Management", description = "APIs for managing user resources")
-public class UserController {
-    
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-    
+@Tag(name = "User Management",
+     description = "APIs for managing user resources")
+public final class UserController {
+
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(UserController.class);
+
     private final UserService userService;
-    
-    public UserController(UserService userService) {
+
+    /**
+     * Constructor for UserController.
+     *
+     * @param userService the user service
+     */
+    public UserController(final UserService userService) {
         this.userService = userService;
     }
-    
+
+    /**
+     * Creates a new user.
+     *
+     * @param user the user to create
+     * @return the created user with HTTP 201 status
+     */
     @PostMapping
     @Operation(
         summary = "Create a new user",
-        description = "Creates a new user with the provided information. Email must be unique."
+        description = "Creates a new user with the provided "
+                    + "information. Email must be unique."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -46,7 +70,10 @@ public class UserController {
                 mediaType = "application/json",
                 schema = @Schema(implementation = User.class),
                 examples = @ExampleObject(
-                    value = "{\"id\":\"507f1f77bcf86cd799439011\",\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"age\":30}"
+                    value = "{\"id\":\"507f1f77bcf86cd799439011\","
+                          + "\"name\":\"John Doe\","
+                          + "\"email\":\"john.doe@example.com\","
+                          + "\"age\":30}"
                 )
             )
         ),
@@ -56,7 +83,12 @@ public class UserController {
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
-                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":400,\"error\":\"Bad Request\",\"message\":\"Validation failed\",\"fieldErrors\":{\"email\":\"Email must be a valid email address\"}}"
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\","
+                          + "\"status\":400,"
+                          + "\"error\":\"Bad Request\","
+                          + "\"message\":\"Validation failed\","
+                          + "\"fieldErrors\":{\"email\":"
+                          + "\"Email must be a valid email address\"}}"
                 )
             )
         ),
@@ -66,7 +98,11 @@ public class UserController {
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
-                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":409,\"error\":\"Conflict\",\"message\":\"Email already exists: john.doe@example.com\"}"
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\","
+                          + "\"status\":409,"
+                          + "\"error\":\"Conflict\","
+                          + "\"message\":\"Email already exists: "
+                          + "john.doe@example.com\"}"
                 )
             )
         )
@@ -78,17 +114,26 @@ public class UserController {
             content = @Content(
                 schema = @Schema(implementation = User.class),
                 examples = @ExampleObject(
-                    value = "{\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"age\":30}"
+                    value = "{\"name\":\"John Doe\","
+                          + "\"email\":\"john.doe@example.com\","
+                          + "\"age\":30}"
                 )
             )
         )
-        @Valid @RequestBody User user) {
-        logger.info("Received POST request to create user with email: {}", user.getEmail());
+        @Valid @RequestBody final User user) {
+        LOGGER.info("Received POST request to create user with email: {}",
+                    user.getEmail());
         User createdUser = userService.createUser(user);
-        logger.info("Successfully created user with ID: {}", createdUser.getId());
+        LOGGER.info("Successfully created user with ID: {}",
+                    createdUser.getId());
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
-    
+
+    /**
+     * Retrieves all users.
+     *
+     * @return list of all users
+     */
     @GetMapping
     @Operation(
         summary = "Get all users",
@@ -102,18 +147,31 @@ public class UserController {
                 mediaType = "application/json",
                 schema = @Schema(implementation = User.class),
                 examples = @ExampleObject(
-                    value = "[{\"id\":\"507f1f77bcf86cd799439011\",\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"age\":30},{\"id\":\"507f1f77bcf86cd799439012\",\"name\":\"Jane Smith\",\"email\":\"jane.smith@example.com\",\"age\":25}]"
+                    value = "[{\"id\":\"507f1f77bcf86cd799439011\","
+                          + "\"name\":\"John Doe\","
+                          + "\"email\":\"john.doe@example.com\","
+                          + "\"age\":30},"
+                          + "{\"id\":\"507f1f77bcf86cd799439012\","
+                          + "\"name\":\"Jane Smith\","
+                          + "\"email\":\"jane.smith@example.com\","
+                          + "\"age\":25}]"
                 )
             )
         )
     })
     public ResponseEntity<List<User>> getAllUsers() {
-        logger.info("Received GET request to fetch all users");
+        LOGGER.info("Received GET request to fetch all users");
         List<User> users = userService.getAllUsers();
-        logger.info("Returning {} users", users.size());
+        LOGGER.info("Returning {} users", users.size());
         return ResponseEntity.ok(users);
     }
-    
+
+    /**
+     * Retrieves a user by ID.
+     *
+     * @param id the user ID
+     * @return the user if found
+     */
     @GetMapping("/{id}")
     @Operation(
         summary = "Get user by ID",
@@ -127,7 +185,10 @@ public class UserController {
                 mediaType = "application/json",
                 schema = @Schema(implementation = User.class),
                 examples = @ExampleObject(
-                    value = "{\"id\":\"507f1f77bcf86cd799439011\",\"name\":\"John Doe\",\"email\":\"john.doe@example.com\",\"age\":30}"
+                    value = "{\"id\":\"507f1f77bcf86cd799439011\","
+                          + "\"name\":\"John Doe\","
+                          + "\"email\":\"john.doe@example.com\","
+                          + "\"age\":30}"
                 )
             )
         ),
@@ -137,30 +198,43 @@ public class UserController {
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
-                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":404,\"error\":\"Not Found\",\"message\":\"User not found with id: 507f1f77bcf86cd799439011\"}"
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\","
+                          + "\"status\":404,"
+                          + "\"error\":\"Not Found\","
+                          + "\"message\":\"User not found with id: "
+                          + "507f1f77bcf86cd799439011\"}"
                 )
             )
         )
     })
     public ResponseEntity<User> getUserById(
-        @Parameter(description = "Unique identifier of the user", example = "507f1f77bcf86cd799439011")
-        @PathVariable String id) {
-        logger.info("Received GET request for user ID: {}", id);
+        @Parameter(description = "Unique identifier of the user",
+                   example = "507f1f77bcf86cd799439011")
+        @PathVariable final String id) {
+        LOGGER.info("Received GET request for user ID: {}", id);
         return userService.getUserById(id)
                 .map(user -> {
-                    logger.info("Successfully found user ID: {}", id);
+                    LOGGER.info("Successfully found user ID: {}", id);
                     return ResponseEntity.ok(user);
                 })
                 .orElseThrow(() -> {
-                    logger.warn("User not found with ID: {}", id);
+                    LOGGER.warn("User not found with ID: {}", id);
                     return new UserNotFoundException(id);
                 });
     }
-    
+
+    /**
+     * Updates an existing user.
+     *
+     * @param id the user ID
+     * @param user the updated user data
+     * @return the updated user
+     */
     @PutMapping("/{id}")
     @Operation(
         summary = "Update an existing user",
-        description = "Updates all fields of an existing user. Email must remain unique."
+        description = "Updates all fields of an existing user. "
+                    + "Email must remain unique."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -170,7 +244,10 @@ public class UserController {
                 mediaType = "application/json",
                 schema = @Schema(implementation = User.class),
                 examples = @ExampleObject(
-                    value = "{\"id\":\"507f1f77bcf86cd799439011\",\"name\":\"John Updated\",\"email\":\"john.updated@example.com\",\"age\":35}"
+                    value = "{\"id\":\"507f1f77bcf86cd799439011\","
+                          + "\"name\":\"John Updated\","
+                          + "\"email\":\"john.updated@example.com\","
+                          + "\"age\":35}"
                 )
             )
         ),
@@ -180,7 +257,12 @@ public class UserController {
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
-                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":400,\"error\":\"Bad Request\",\"message\":\"Validation failed\",\"fieldErrors\":{\"age\":\"Age must be at least 18\"}}"
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\","
+                          + "\"status\":400,"
+                          + "\"error\":\"Bad Request\","
+                          + "\"message\":\"Validation failed\","
+                          + "\"fieldErrors\":{\"age\":"
+                          + "\"Age must be at least 18\"}}"
                 )
             )
         ),
@@ -190,7 +272,11 @@ public class UserController {
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
-                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":404,\"error\":\"Not Found\",\"message\":\"User not found with id: 507f1f77bcf86cd799439011\"}"
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\","
+                          + "\"status\":404,"
+                          + "\"error\":\"Not Found\","
+                          + "\"message\":\"User not found with id: "
+                          + "507f1f77bcf86cd799439011\"}"
                 )
             )
         ),
@@ -200,37 +286,50 @@ public class UserController {
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
-                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":409,\"error\":\"Conflict\",\"message\":\"Email already exists: existing@example.com\"}"
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\","
+                          + "\"status\":409,"
+                          + "\"error\":\"Conflict\","
+                          + "\"message\":\"Email already exists: "
+                          + "existing@example.com\"}"
                 )
             )
         )
     })
     public ResponseEntity<User> updateUser(
-        @Parameter(description = "Unique identifier of the user to update", example = "507f1f77bcf86cd799439011")
-        @PathVariable String id,
+        @Parameter(description = "Unique identifier of the user to update",
+                   example = "507f1f77bcf86cd799439011")
+        @PathVariable final String id,
         @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Updated user object",
             required = true,
             content = @Content(
                 schema = @Schema(implementation = User.class),
                 examples = @ExampleObject(
-                    value = "{\"name\":\"John Updated\",\"email\":\"john.updated@example.com\",\"age\":35}"
+                    value = "{\"name\":\"John Updated\","
+                          + "\"email\":\"john.updated@example.com\","
+                          + "\"age\":35}"
                 )
             )
         )
-        @Valid @RequestBody User user) {
-        logger.info("Received PUT request to update user ID: {}", id);
+        @Valid @RequestBody final User user) {
+        LOGGER.info("Received PUT request to update user ID: {}", id);
         return userService.updateUser(id, user)
                 .map(updatedUser -> {
-                    logger.info("Successfully updated user ID: {}", id);
+                    LOGGER.info("Successfully updated user ID: {}", id);
                     return ResponseEntity.ok(updatedUser);
                 })
                 .orElseThrow(() -> {
-                    logger.warn("User not found for update with ID: {}", id);
+                    LOGGER.warn("User not found for update with ID: {}", id);
                     return new UserNotFoundException(id);
                 });
     }
-    
+
+    /**
+     * Deletes a user by ID.
+     *
+     * @param id the user ID
+     * @return empty response with HTTP 204 status
+     */
     @DeleteMapping("/{id}")
     @Operation(
         summary = "Delete a user",
@@ -247,21 +346,26 @@ public class UserController {
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
-                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\",\"status\":404,\"error\":\"Not Found\",\"message\":\"User not found with id: 507f1f77bcf86cd799439011\"}"
+                    value = "{\"timestamp\":\"2026-02-13T02:22:32.034Z\","
+                          + "\"status\":404,"
+                          + "\"error\":\"Not Found\","
+                          + "\"message\":\"User not found with id: "
+                          + "507f1f77bcf86cd799439011\"}"
                 )
             )
         )
     })
     public ResponseEntity<Void> deleteUser(
-        @Parameter(description = "Unique identifier of the user to delete", example = "507f1f77bcf86cd799439011")
-        @PathVariable String id) {
-        logger.info("Received DELETE request for user ID: {}", id);
+        @Parameter(description = "Unique identifier of the user to delete",
+                   example = "507f1f77bcf86cd799439011")
+        @PathVariable final String id) {
+        LOGGER.info("Received DELETE request for user ID: {}", id);
         boolean deleted = userService.deleteUser(id);
         if (deleted) {
-            logger.info("Successfully deleted user ID: {}", id);
+            LOGGER.info("Successfully deleted user ID: {}", id);
             return ResponseEntity.noContent().build();
         } else {
-            logger.warn("User not found for deletion with ID: {}", id);
+            LOGGER.warn("User not found for deletion with ID: {}", id);
             throw new UserNotFoundException(id);
         }
     }
