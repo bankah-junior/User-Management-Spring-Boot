@@ -4,6 +4,25 @@
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green.svg)](https://www.mongodb.com/)
+[![Tests](https://img.shields.io/badge/Tests-113%20Passed-brightgreen.svg)](#testing)
+
+A production-ready User Management REST API built with Spring Boot, featuring comprehensive CRUD operations, MongoDB integration, automated testing, and CI/CD pipeline.
+
+## 📋 Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [Testing](#testing)
+- [API Documentation](#api-documentation)
+- [Getting Started](#getting-started)
+- [API Endpoints](#api-endpoints)
+- [Monitoring & Health Checks](#monitoring--health-checks)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+
+## Overview
+A robust User Management application built with Spring Boot providing RESTful API endpoints for complete CRUD operations on user entities with MongoDB integration, comprehensive validation, and enterprise-grade error handling.
 
 ## Task Status
 - **US-001**: ✅ Create User Endpoint
@@ -11,9 +30,6 @@
 - **US-003**: ✅ Get User by ID Endpoint
 - **US-006**: ✅ Input Validation
 - **US-008**: ✅ CI/CD Pipeline Setup
-
-## Overview
-User Management application built with Spring Boot providing REST API endpoints for CRUD operations on user entities with MongoDB integration.
 
 ## Features
 - ✅ **RESTful API** - Complete CRUD operations
@@ -179,47 +195,79 @@ View and modify logging levels at runtime
 - **Mockito** - Mocking framework
 - **Testcontainers** - Integration testing with MongoDB
 
-## Prerequisites
-- Java 21 or higher
-- Maven 3.6+
-- MongoDB 7.0+ (or Docker for MongoDB)
+## Getting Started
 
-## Build and Test
+### Prerequisites
+- **Java 21** or higher
+- **Maven 3.6+**
+- **MongoDB 7.0+** (or Docker for MongoDB)
 
-### Build the project
-```bash
-mvn clean install
-```
+### Installation
 
-### Run tests
-```bash
-mvn test
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/bankah-junior/User-Management-Spring-Boot.git
+   cd User-Management-Spring-Boot
+   ```
 
-### Run the application
-```bash
-mvn spring-boot:run
-```
+2. **Build the project**
+   ```bash
+   mvn clean install
+   ```
+
+3. **Run tests**
+   ```bash
+   mvn test
+   ```
+
+4. **Start the application**
+   ```bash
+   mvn spring-boot:run
+   ```
 
 The application will start on `http://localhost:8080`
 
+### Quick Start with Docker (MongoDB)
+```bash
+docker run -d -p 27017:27017 --name mongodb mongo:7.0
+mvn spring-boot:run
+```
+
 ## CI/CD Pipeline
 
-This project uses GitHub Actions for continuous integration and deployment:
+This project uses **GitHub Actions** for continuous integration and deployment with automated builds and comprehensive testing on every push.
 
-- **Automated Builds** - Triggers on push to main/master branch
-- **Automated Testing** - Runs all unit and integration tests
-- **Test Reports** - Generates and uploads test results
-- **Maven Caching** - Optimizes build time
-- **Build Status** - See badge at the top of README
+![CI/CD Pipeline](CI-Maven-Github-Workflow.png)
 
 ### Pipeline Features
-- ✅ JDK 21 setup with Temurin distribution
-- ✅ Maven dependency caching
-- ✅ Automated test execution
-- ✅ Test report generation
-- ✅ Artifact upload for test results
-- ✅ Build summary in GitHub Actions
+- ✅ **Automated Builds** - Triggers on push to main/master and pull requests
+- ✅ **JDK 21** setup with Temurin distribution
+- ✅ **Maven Dependency Caching** - Optimizes build time
+- ✅ **Automated Testing** - Runs all 113 unit and integration tests
+- ✅ **Test Report Generation** - Detailed test results and coverage
+- ✅ **Test Coverage Upload** - Automated coverage reporting
+- ✅ **Build Summary** - Comprehensive build status in GitHub Actions
+- ✅ **Artifact Management** - Uploads test results as artifacts
+
+The pipeline ensures code quality and reliability by running the full test suite on every commit, providing immediate feedback on build status and test results.
+
+## Testing
+
+The project maintains high code quality with **113 comprehensive tests** covering all layers of the application.
+
+![Test Results](JUnit-Tests-Pass.png)
+
+### Test Coverage
+- ✅ **100% Class Coverage** (2/2 controllers, 1/1 services)
+- ✅ **100% Method Coverage** (19/19 methods)
+- ✅ **94% Line Coverage** (81/86 lines)
+- ✅ **100% Branch Coverage** (14/14 branches)
+
+### Test Types
+- **Controller Tests** - REST endpoint validation and response testing
+- **Service Tests** - Business logic and integration testing
+- **Validation Tests** - Input validation and constraint testing
+- **Integration Tests** - End-to-end scenarios with Testcontainers
 
 ## Project Structure
 ```
